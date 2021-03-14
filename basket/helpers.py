@@ -21,8 +21,7 @@ def validate_trade(trade_data):
             raise Exception("sold quantity more than holding - short selling is not supported")
 
         if portfolio.quantity < trade_data["trade_quantity"]:
-            raise Exception("sold quantity more than holding - short selling is not supported")
-            
+            raise Exception("sold quantity more than holding - short selling is not supported")           
  
 def execute_trade(trade_data):
     trade = Trade(portfolio_id=trade_data["portfolio_id"],
@@ -53,3 +52,9 @@ def update_portfolio(trade_data):
             avg_buy_price=trade_data.trade_price,
             quantity=trade_data.trade_quantity)
         portfolio.save()
+
+def calculate_returns(portfolio):
+    cumulative_returns = 0
+    for ticker in portfolio:
+        cumulative_returns+=((100 - ticker.avg_buy_price)*(ticker.quantity))
+    return cumulative_returns

@@ -11,3 +11,8 @@ class PortfolioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Portfolio
         fields = ['portfolio_id', 'ticker_name', 'avg_buy_price', 'quantity']
+
+class IndividualPortfolioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Portfolio
+        fields = ['ticker_name', 'avg_buy_price', 'quantity']

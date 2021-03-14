@@ -5,15 +5,15 @@ from django.shortcuts import render
 import json
 import traceback
 from basket.models import Trade, Portfolio
-from basket.serializers import TradeSerializer, PortfolioSerializer
-from basket.helpers import validate_trade, execute_trade, update_portfolio
-from rest_framework.views import APIView
+from basket.serializers import TradeSerializer, PortfolioSerializer, IndividualPortfolioSerializer
+from basket.helpers import validate_trade, execute_trade, update_portfolio, calculate_returns
 from rest_framework.response import Response
-from rest_framework import status
+from django.http import Http404
+from rest_framework import status, generics
 from django.forms.models import model_to_dict
 
 
-class TradeList(APIView):
+class TradeList(generics.GenericAPIView):
     """
     List all trades, or create a new trade.
     """
@@ -34,8 +34,27 @@ class TradeList(APIView):
             return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
         return Response(model_to_dict(trade_obj), status=status.HTTP_201_CREATED)
  
+class TradeDetail(generics.GenericAPIView):
+    """
+    Retrieve, update or delete a code trade.
+    """
+    def get_object(self, pk):
+        try:
+            return Trade.objects.get(trade_id=pk)
+        except Trade.DoesNotExist:
+            raise Http404
 
-class PortfolioList(APIView):
+    def get(self, request, pk, format=None):
+        trade = self.get_object(pk)
+        serializer = TradeSerializer(trade)
+        return Response(serializer.data)
+
+    def delete(self, request, pk, format=None):
+        trade = self.get_object(pk)
+
+
+
+class PortfolioList(generics.GenericAPIView):
     """
     List all portfolios
     """
@@ -43,3 +62,33 @@ class PortfolioList(APIView):
         portfolio = Portfolio.objects.all()
         serializer = PortfolioSerializer(portfolio, many=True)
         return Response(serializer.data)
+
+class PortfolioDetail(generics.GenericAPIView):
+    """
+    Retrieve a portfolio
+    """
+    def get_object(self, pk):
+        try:
+            return Portfolio.objects.filter(portfolio_id=pk)
+        except Portfolio.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        portfolio = self.get_object(pk)
+        serializer = IndividualPortfolioSerializer(portfolio, many=True)
+        return Response(serializer.data)
+
+class Returns(generics.GenericAPIView):
+    """
+    Get portfolio returns
+    """
+    def get_object(self, pk):
+        try:
+            return Portfolio.objects.filter(portfolio_id=pk)
+        except Portfolio.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        portfolio = self.get_object(pk)
+        returns = calculate_returns(portfolio)
+        return Response(returns)
