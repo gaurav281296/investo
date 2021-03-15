@@ -22,7 +22,32 @@ def validate_trade(trade_data):
 
         if portfolio.quantity < trade_data["trade_quantity"]:
             raise Exception("sold quantity more than holding - short selling is not supported")           
- 
+
+def validate_deletion(trade_data):
+    if trade_data.trade_type == "b":
+        portfolio = Portfolio.objects.get(portfolio_id=trade_data.portfolio_id,ticker_name=trade_data.ticker_name)
+        if portfolio.quantity < trade_data.trade_quantity:
+            raise Exception("sold quantity will become more than bought quantity in portfolio - trade deletion not possible")
+
+def recompute_portfolio(portfolio_id, ticker_name):
+    portfolio = Portfolio.objects.get(portfolio_id=portfolio_id,ticker_name=ticker_name)
+    trades = Trade.objects.filter(portfolio_id=portfolio_id,ticker_name=ticker_name)
+    avg_buy_price = 0
+    quantity = 0
+    #will be in order of trade_id
+    for trade in trades:
+        if trade.trade_type == "b":
+            avg_buy_price = ((avg_buy_price*quantity)+(trade.trade_price*trade.trade_quantity))/(quantity+trade.trade_quantity)
+            quantity+=trade.trade_quantity
+        else:
+            quantity-=trade.trade_quantity
+    portfolio.avg_buy_price = avg_buy_price
+    portfolio.quantity = quantity
+    if quantity == 0:
+        portfolio.delete()
+    else:
+        portfolio.save()
+
 def execute_trade(trade_data):
     trade = Trade(portfolio_id=trade_data["portfolio_id"],
         ticker_name=trade_data["ticker_name"],

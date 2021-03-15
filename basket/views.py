@@ -6,7 +6,7 @@ import json
 import traceback
 from basket.models import Trade, Portfolio
 from basket.serializers import TradeSerializer, PortfolioSerializer, IndividualPortfolioSerializer
-from basket.helpers import validate_trade, execute_trade, update_portfolio, calculate_returns
+from basket.helpers import validate_trade, validate_deletion, execute_trade, update_portfolio, calculate_returns, recompute_portfolio
 from rest_framework.response import Response
 from django.http import Http404
 from rest_framework import status, generics
@@ -51,8 +51,14 @@ class TradeDetail(generics.GenericAPIView):
 
     def delete(self, request, pk, format=None):
         trade = self.get_object(pk)
-
-
+        try:
+            validate_deletion(trade)
+            trade.delete()
+            recompute_portfolio(trade.portfolio_id, trade.ticker_name)
+        except Exception as e:
+            print(traceback.format_exc())
+            return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class PortfolioList(generics.GenericAPIView):
     """
